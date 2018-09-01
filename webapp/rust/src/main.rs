@@ -24,8 +24,7 @@ use actix_web::middleware::session::{
     CookieSessionBackend, RequestSession, Session, SessionStorage,
 };
 use actix_web::{
-    server, App, AsyncResponder, Form, FutureResponse, HttpMessage, HttpRequest, HttpResponse,
-    Json, Path, Query, Responder, State,
+    server, App, Form, FutureResponse, HttpMessage, HttpRequest, HttpResponse, Path, Query, State,
 };
 use chrono::NaiveDateTime;
 use failure::Error as FailureError;
@@ -383,7 +382,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/initialize",
         Method::GET,
-        |state: State<Isu>, req: HttpRequest<Isu>| -> Result<HttpResponse, Error> {
+        |state: State<Isu>| -> Result<HttpResponse, Error> {
             state.exec_sql("DELETE FROM user WHERE id > 1000", ())?;
             state.exec_sql("DELETE FROM user WHERE id > 1000", ())?;
             state.exec_sql("DELETE FROM image WHERE id > 1001", ())?;
@@ -399,7 +398,7 @@ fn app(isu: Isu) -> App<Isu> {
         Method::GET,
         |state: State<Isu>, req: HttpRequest<Isu>| -> Result<HttpResponse, Error> {
             match req.session().get::<UserSession>(SESSION_KEY)? {
-                Some(user) => Ok(http_redirect("/channel/1", 303)),
+                Some(_user) => Ok(http_redirect("/channel/1", 303)),
                 None => state.render("index", &json!({})).map(http_ok),
             }
         },
@@ -409,7 +408,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/channel/{channel_id}",
         Method::GET,
         |state: State<Isu>,
-         req: HttpRequest<Isu>,
          session: Session,
          path: Path<ParamChannelId>|
          -> Result<HttpResponse, Error> {
@@ -437,7 +435,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/register",
         Method::GET,
-        |state: State<Isu>, _req: HttpRequest<Isu>| -> Result<HttpResponse, Error> {
+        |state: State<Isu>| -> Result<HttpResponse, Error> {
             state.render("register", &json!({})).map(http_ok)
         },
     );
@@ -446,7 +444,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/register",
         Method::POST,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          form: Form<ParamRegister>|
          -> Result<HttpResponse, Error> {
@@ -470,7 +467,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/login",
         Method::GET,
-        |state: State<Isu>, _req: HttpRequest<Isu>| -> Result<HttpResponse, Error> {
+        |state: State<Isu>| -> Result<HttpResponse, Error> {
             state.render("login", &json!({})).map(http_ok)
         },
     );
@@ -479,7 +476,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/login",
         Method::POST,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          form: Form<ParamRegister>|
          -> Result<HttpResponse, Error> {
@@ -502,10 +498,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/logout",
         Method::GET,
-        |state: State<Isu>,
-         _req: HttpRequest<Isu>,
-         session: Session|
-         -> Result<HttpResponse, Error> {
+        |session: Session| -> Result<HttpResponse, Error> {
             session.clear();
             Ok(http_redirect("/", 303))
         },
@@ -515,7 +508,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/message",
         Method::POST,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          form: Form<ParamNewMessage>|
          -> Result<HttpResponse, Error> {
@@ -534,7 +526,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/message",
         Method::GET,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          query: Query<ParamMessage>|
          -> Result<HttpResponse, Error> {
@@ -589,10 +580,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/fetch",
         Method::GET,
-        |state: State<Isu>,
-         _req: HttpRequest<Isu>,
-         session: Session|
-         -> Result<HttpResponse, Error> {
+        |state: State<Isu>, session: Session| -> Result<HttpResponse, Error> {
             use std::thread::sleep;
             use std::time::Duration;
             let user_id = match session.get::<UserSession>(SESSION_KEY)? {
@@ -636,7 +624,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/history/{channel_id}",
         Method::GET,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          path: Path<ParamChannelId>,
          query: Query<ParamPage>|
@@ -720,7 +707,6 @@ fn app(isu: Isu) -> App<Isu> {
         "/profile/{user_name}",
         Method::GET,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          path: Path<ParamUserName>|
          -> Result<HttpResponse, Error> {
@@ -755,10 +741,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/add_channel",
         Method::GET,
-        |state: State<Isu>,
-         _req: HttpRequest<Isu>,
-         session: Session|
-         -> Result<HttpResponse, Error> {
+        |state: State<Isu>, session: Session| -> Result<HttpResponse, Error> {
             let user = match state.user(session)? {
                 None => return Ok(http_redirect("/login", 303)),
                 Some(user) => user,
@@ -781,11 +764,10 @@ fn app(isu: Isu) -> App<Isu> {
         "/add_channel",
         Method::POST,
         |state: State<Isu>,
-         _req: HttpRequest<Isu>,
          session: Session,
          form: Form<ParamChannel>|
          -> Result<HttpResponse, Error> {
-            let user = match state.user(session)? {
+            let _user = match state.user(session)? {
                 None => return Ok(http_redirect("/login", 303)),
                 Some(user) => user,
             };
@@ -888,11 +870,7 @@ fn app(isu: Isu) -> App<Isu> {
     app = app.route(
         "/icons/{file_name}",
         Method::GET,
-        |state: State<Isu>,
-         _req: HttpRequest<Isu>,
-         session: Session,
-         path: Path<ParamFilename>|
-         -> Result<HttpResponse, Error> {
+        |state: State<Isu>, path: Path<ParamFilename>| -> Result<HttpResponse, Error> {
             use std::path::Path;
             let file_name = &path.file_name;
             let data: Option<Vec<u8>> =
@@ -925,13 +903,12 @@ pub fn main() {
 mod multipart {
     use super::{err, Error};
     use actix_web::error::PayloadError;
-    use actix_web::http::header::{ContentDisposition, DispositionParam, DispositionType};
     use actix_web::multipart::Multipart;
     use actix_web::multipart::MultipartItem;
     use bytes::Bytes;
     use futures::prelude::*;
     use std::fs::File;
-    use std::io::{BufWriter, Read, Write};
+    use std::io::Write;
     use tempfile::tempfile;
 
     #[derive(Debug)]
