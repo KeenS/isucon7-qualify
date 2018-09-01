@@ -1,0 +1,30 @@
+{{#*inline "page"}}
+<div id="history">
+    {{#each messages}}
+    <div class="media message">
+	<img class="avatar d-flex align-self-start mr-3" src="/icons/{{user.avatar_icon}}" alt="no avatar">
+	<div class="media-body">
+	    <h5 class="mt-0"><a href="/profile/{{user.name}}">{{user.display_name}}@{{user.name}}</a></h5>
+	    <p class="content">{{content}}</p>
+            <p class="message-date">{{date}}</p>
+	</div>
+    </div>
+    {{/each}}
+</div>
+
+<nav>
+    <ul class="pagination">
+        {{#if (lt 1 page)}}
+        <li><a href="/history/{{channel_id}}?page={{page_minus}}"><span>«</span></a></li>
+        {{/if}}
+        {{#each index as |p|}}
+            {{#if (eq ../page p)}} <li class="active"> {{else}} <li> {{/if}}
+            <a href="/history/{{../channel_id}}?page={{p}}">{{p}}</a></li>
+        {{/each}}
+        {{#if (lt page max_page)}}
+        <li><a href="/history/{{channe_id}}?page={{page_plus}}"><span>»</span></a></li>
+        {{/if}}
+    </ul>
+</nav>
+{{/inline}}
+{{~> layout ~}}
